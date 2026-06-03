@@ -1,0 +1,16 @@
+# Python / Django
+__pycache__/
+*.py[cod]
+*.sqlite3
+.env
+.venv/
+venv/
+
+# Node (frontend has its own .gitignore too)
+node_modules/
+dist/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
