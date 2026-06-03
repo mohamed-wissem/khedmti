@@ -1,0 +1,216 @@
+// BLACKFORGE storefront schema.
+// Shares the Neon database with the Django backend but lives in its OWN Postgres
+// schema ("blackforge"). Prisma only manages schemas listed in `schemas`, so
+// `db push`/`migrate` can never touch Django's tables in `public`.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
+  schemas   = ["blackforge"]
+}
+
+// ---------------------------------------------------------------------------
+// Auth (NextAuth / Auth.js compatible)
+// ---------------------------------------------------------------------------
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+
+  xp            Int       @default(0)
+  level         Int       @default(1)
+
+  accounts      Account[]
+  sessions      Session[]
+  orders        Order[]
+  carts         Cart[]
+  wishlist      WishlistItem[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("user")
+  @@schema("blackforge")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("account")
+  @@schema("blackforge")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("session")
+  @@schema("blackforge")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_token")
+  @@schema("blackforge")
+}
+
+// ---------------------------------------------------------------------------
+// Catalog
+// ---------------------------------------------------------------------------
+enum ProductCategory {
+  GAME
+  ACCOUNT
+  GIFT_CARD
+  CURRENCY
+  SUBSCRIPTION
+  ACCESSORY
+
+  @@schema("blackforge")
+}
+
+enum Rarity {
+  COMMON
+  PREMIUM
+  LEGENDARY
+
+  @@schema("blackforge")
+}
+
+model Product {
+  id           String          @id @default(cuid())
+  slug         String          @unique
+  title        String
+  description  String?
+  platform     String?
+  category     ProductCategory
+  rarity       Rarity          @default(COMMON)
+  priceCents   Int
+  compareCents Int?
+  instant      Boolean         @default(true)
+  stock        Int             @default(0)
+  active       Boolean         @default(true)
+  imageUrl     String?
+
+  orderItems   OrderItem[]
+  cartItems    CartItem[]
+  wishlisted   WishlistItem[]
+
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([category])
+  @@map("product")
+  @@schema("blackforge")
+}
+
+// ---------------------------------------------------------------------------
+// Cart
+// ---------------------------------------------------------------------------
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String?
+  user      User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("cart")
+  @@schema("blackforge")
+}
+
+model CartItem {
+  id        String  @id @default(cuid())
+  cartId    String
+  productId String
+  quantity  Int     @default(1)
+  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId])
+  @@map("cart_item")
+  @@schema("blackforge")
+}
+
+// ---------------------------------------------------------------------------
+// Orders
+// ---------------------------------------------------------------------------
+enum OrderStatus {
+  PENDING
+  PAID
+  FULFILLED
+  REFUNDED
+  CANCELLED
+
+  @@schema("blackforge")
+}
+
+model Order {
+  id         String      @id @default(cuid())
+  userId     String?
+  user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  status     OrderStatus @default(PENDING)
+  totalCents Int
+  email      String
+  items      OrderItem[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([userId])
+  @@map("order")
+  @@schema("blackforge")
+}
+
+model OrderItem {
+  id           String  @id @default(cuid())
+  orderId      String
+  productId    String
+  quantity     Int     @default(1)
+  priceCents   Int
+  deliveredKey String?
+  order        Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product      Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@map("order_item")
+  @@schema("blackforge")
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@map("wishlist_item")
+  @@schema("blackforge")
+}
