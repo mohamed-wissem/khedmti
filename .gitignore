@@ -3,8 +3,13 @@ __pycache__/
 *.py[cod]
 *.sqlite3
 .env
+.env*.local
 .venv/
 venv/
+staticfiles/
+
+# Vercel
+.vercel/
 
 # Node (frontend has its own .gitignore too)
 node_modules/

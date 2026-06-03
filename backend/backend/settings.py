@@ -10,22 +10,38 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
+import urllib.parse
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# True when running on Vercel (the platform sets the VERCEL env var).
+ON_VERCEL = bool(os.environ.get('VERCEL'))
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-u@dxffp6@*qse^wl-fa%m(7^-$p&$18mt=8jy9@ngllzi@sm4='
+# Set SECRET_KEY in the environment for any deployed instance; the fallback is
+# for local development only.
+SECRET_KEY = os.environ.get(
+    'SECRET_KEY',
+    'django-insecure-u@dxffp6@*qse^wl-fa%m(7^-$p&$18mt=8jy9@ngllzi@sm4=',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Defaults to True locally and False on Vercel; override with the DEBUG env var.
+DEBUG = os.environ.get('DEBUG', 'False' if ON_VERCEL else 'True').lower() == 'true'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.vercel.app']
+if os.environ.get('ALLOWED_HOSTS'):
+    ALLOWED_HOSTS += os.environ['ALLOWED_HOSTS'].split(',')
+
+# Required for the Django admin (and any POST) over HTTPS on *.vercel.app.
+CSRF_TRUSTED_ORIGINS = ['https://*.vercel.app']
 
 
 # Application definition
@@ -73,12 +89,28 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Use Postgres via DATABASE_URL (set automatically by the Vercel Postgres/Neon
+# integration) when available; fall back to SQLite for local development.
+if os.environ.get('DATABASE_URL'):
+    _url = urllib.parse.urlparse(os.environ['DATABASE_URL'])
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': _url.path.lstrip('/'),
+            'USER': _url.username,
+            'PASSWORD': _url.password,
+            'HOST': _url.hostname,
+            'PORT': _url.port,
+            'OPTIONS': {'sslmode': 'require'},
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -116,6 +148,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# Vercel runs collectstatic automatically when STATIC_ROOT is set and serves
+# the collected files from its CDN.
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 
 # Default primary key field type
