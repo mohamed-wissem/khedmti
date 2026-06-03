@@ -2,6 +2,14 @@
 
 import { randomBytes } from "node:crypto";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
+import {
+  xpForOrder,
+  creditForOrder,
+  levelForXp,
+  REFERRAL_BONUS_CENTS,
+  REFERRAL_XP,
+} from "@/lib/gamification";
 
 export interface CheckoutLine {
   id: string;
@@ -53,8 +61,14 @@ export async function placeOrder(
 
   const totalCents = items.reduce((n, i) => n + i.product.priceCents * i.quantity, 0);
 
+  // Attach to the signed-in user when there is one (guest checkout otherwise).
+  const session = await auth();
+
+  const userId = session?.user?.id ?? null;
+
   const order = await prisma.order.create({
     data: {
+      userId,
       email: clean,
       status: "FULFILLED", // mock: assume payment cleared + instantly fulfilled
       totalCents,
@@ -68,6 +82,38 @@ export async function placeOrder(
       },
     },
   });
+
+  // Gamification: award XP + Forge Credit, and pay the referrer on first order.
+  if (userId) {
+    const priorOrders = await prisma.order.count({ where: { userId, id: { not: order.id } } });
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (user) {
+      const newXp = user.xp + xpForOrder(totalCents);
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          xp: newXp,
+          level: levelForXp(newXp),
+          creditCents: { increment: creditForOrder(totalCents) },
+        },
+      });
+
+      // First-ever order from a referred user rewards the referrer.
+      if (priorOrders === 0 && user.referredById) {
+        const ref = await prisma.user.findUnique({ where: { id: user.referredById } });
+        if (ref) {
+          await prisma.user.update({
+            where: { id: ref.id },
+            data: {
+              creditCents: { increment: REFERRAL_BONUS_CENTS },
+              xp: { increment: REFERRAL_XP },
+              level: levelForXp(ref.xp + REFERRAL_XP),
+            },
+          });
+        }
+      }
+    }
+  }
 
   return { ok: true, orderId: order.id };
 }

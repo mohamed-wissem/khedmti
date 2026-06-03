@@ -1,12 +1,13 @@
 import Link from "next/link";
-import { Heart, Eye, Zap } from "lucide-react";
+import { Eye, Zap } from "lucide-react";
 import type { Product, Rarity } from "@prisma/client";
 import { cn } from "@/lib/utils";
 import { formatCents } from "@/lib/format";
+import { WishlistButton } from "@/components/product/wishlist-button";
 
 export type ProductCard = Pick<
   Product,
-  "slug" | "title" | "platform" | "priceCents" | "compareCents" | "rarity" | "instant"
+  "id" | "slug" | "title" | "platform" | "priceCents" | "compareCents" | "rarity" | "instant"
 >;
 
 const rarityRibbon: Record<Rarity, string> = {
@@ -15,7 +16,7 @@ const rarityRibbon: Record<Rarity, string> = {
   LEGENDARY: "border-rune/60 text-rune",
 };
 
-export function ProductTile({ product }: { product: ProductCard }) {
+export function ProductTile({ product, wishlisted = false }: { product: ProductCard; wishlisted?: boolean }) {
   const { slug, title, platform, priceCents, compareCents, rarity, instant } = product;
   const discount = compareCents ? Math.round((1 - priceCents / compareCents) * 100) : 0;
 
@@ -45,9 +46,7 @@ export function ProductTile({ product }: { product: ProductCard }) {
         )}
 
         <div className="absolute bottom-3 right-3 z-10 flex gap-2 opacity-0 translate-y-1 transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100">
-          <button type="button" aria-label="Add to wishlist" className="rounded-bf border border-ash bg-void/80 p-2 text-moon backdrop-blur transition-colors hover:text-ember">
-            <Heart className="h-4 w-4" />
-          </button>
+          <WishlistButton productId={product.id} initial={wishlisted} />
           <Link href={`/product/${slug}`} aria-label="Quick view" className="rounded-bf border border-ash bg-void/80 p-2 text-moon backdrop-blur transition-colors hover:text-ember">
             <Eye className="h-4 w-4" />
           </Link>

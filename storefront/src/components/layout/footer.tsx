@@ -1,22 +1,42 @@
 import Link from "next/link";
 import { Swords } from "lucide-react";
 
-const COLUMNS = [
+const COLUMNS: { title: string; links: { label: string; href: string }[] }[] = [
   {
     title: "Shop",
-    links: ["Games", "Accounts", "Gift Cards", "Currency", "Subscriptions", "Gear"],
+    links: [
+      { label: "Games", href: "/category/games" },
+      { label: "Accounts", href: "/category/accounts" },
+      { label: "Gift Cards", href: "/category/gift-cards" },
+      { label: "Currency", href: "/category/currency" },
+      { label: "Subscriptions", href: "/category/subscriptions" },
+      { label: "Gear", href: "/category/accessories" },
+    ],
   },
   {
     title: "Support",
-    links: ["Help Center", "Delivery", "Refunds", "Contact", "FAQ"],
+    links: [
+      { label: "Support Center", href: "/support" },
+      { label: "FAQ", href: "/faq" },
+      { label: "Contact", href: "/contact" },
+      { label: "About", href: "/about" },
+    ],
   },
   {
-    title: "Company",
-    links: ["About", "The Codex", "Careers", "Affiliates"],
+    title: "Account",
+    links: [
+      { label: "Dashboard", href: "/dashboard" },
+      { label: "Orders", href: "/dashboard/orders" },
+      { label: "Wishlist", href: "/dashboard/wishlist" },
+    ],
   },
   {
     title: "Legal",
-    links: ["Terms", "Privacy", "Cookies"],
+    links: [
+      { label: "Terms", href: "/legal/terms" },
+      { label: "Privacy", href: "/legal/privacy" },
+      { label: "Refunds", href: "/legal/refund" },
+    ],
   },
 ];
 
@@ -43,9 +63,9 @@ export function Footer() {
             </h3>
             <ul className="mt-4 space-y-2.5">
               {col.links.map((l) => (
-                <li key={l}>
-                  <Link href="#" className="text-sm text-smoke transition-colors hover:text-moon">
-                    {l}
+                <li key={l.label}>
+                  <Link href={l.href} className="text-sm text-smoke transition-colors hover:text-moon">
+                    {l.label}
                   </Link>
                 </li>
               ))}

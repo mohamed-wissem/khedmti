@@ -1,19 +1,41 @@
 import NextAuth from "next-auth";
+import Credentials from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
+import { prisma } from "@/lib/prisma";
 
 /**
- * Auth.js (NextAuth v5) skeleton.
- *
- * Phase 1 ships the wiring only. Real providers — Google, Discord, Steam, and
- * an email magic-link — plus the PrismaAdapter (`@auth/prisma-adapter` against
- * the bf_user/bf_account/bf_session tables) land in Phase 3. JWT sessions keep
- * the skeleton DB-free until then.
+ * Auth.js (NextAuth v5) — email + password (Credentials), self-contained.
+ * JWT sessions (required for Credentials). OAuth providers (Google/Discord/
+ * Steam) and the PrismaAdapter can be added later without changing callers.
  */
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
+  pages: { signIn: "/login" },
   providers: [
-    // e.g. Google({ clientId, clientSecret }), Discord({ ... }), Steam, Resend magic-link
+    Credentials({
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      authorize: async (creds) => {
+        const email = String(creds?.email ?? "").toLowerCase().trim();
+        const password = String(creds?.password ?? "");
+        if (!email || !password) return null;
+
+        const user = await prisma.user.findUnique({ where: { email } });
+        if (!user?.passwordHash) return null;
+
+        const valid = await bcrypt.compare(password, user.passwordHash);
+        if (!valid) return null;
+
+        return { id: user.id, name: user.name, email: user.email };
+      },
+    }),
   ],
-  pages: {
-    signIn: "/login",
+  callbacks: {
+    session: ({ session, token }) => {
+      if (token.sub && session.user) session.user.id = token.sub;
+      return session;
+    },
   },
 });
