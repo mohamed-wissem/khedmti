@@ -6,6 +6,7 @@ import { catalogDocs } from "@/docs/openapi/catalog.openapi";
 import { commerceDocs } from "@/docs/openapi/commerce.openapi";
 import { ordersDocs } from "@/docs/openapi/orders.openapi";
 import { engagementDocs } from "@/docs/openapi/engagement.openapi";
+import { adminDocs } from "@/docs/openapi/admin.openapi";
 
 /** Module fragments merged into the base document below. */
 const fragments: OpenApiFragment[] = [
@@ -15,6 +16,7 @@ const fragments: OpenApiFragment[] = [
   commerceDocs,
   ordersDocs,
   engagementDocs,
+  adminDocs,
 ];
 
 /**

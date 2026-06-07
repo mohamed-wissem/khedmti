@@ -11,6 +11,7 @@ import { couponsRouter } from "@/modules/coupons/coupons.routes";
 import { ordersRouter } from "@/modules/orders/orders.routes";
 import { paymentsRouter } from "@/modules/payments/payments.routes";
 import { reviewsRouter } from "@/modules/reviews/reviews.routes";
+import { adminRouter } from "@/modules/admin/admin.routes";
 
 /**
  * API v1 router. Feature module routers are mounted here as sprints land.
@@ -36,3 +37,4 @@ apiRouter.use("/coupons", couponsRouter);
 apiRouter.use("/orders", ordersRouter);
 apiRouter.use("/payments", paymentsRouter);
 apiRouter.use("/reviews", reviewsRouter);
+apiRouter.use("/admin", adminRouter);
