@@ -4,7 +4,7 @@ import type { Response } from "express";
 export interface SuccessEnvelope<T> {
   success: true;
   data: T;
-  meta?: Record<string, unknown>;
+  meta?: object;
 }
 
 /** Standard error envelope (matches the Sprint 0 spec). */
@@ -16,7 +16,7 @@ export interface ErrorEnvelope {
 }
 
 /** Build a success envelope. */
-export function success<T>(data: T, meta?: Record<string, unknown>): SuccessEnvelope<T> {
+export function success<T>(data: T, meta?: object): SuccessEnvelope<T> {
   return meta ? { success: true, data, meta } : { success: true, data };
 }
 
@@ -28,11 +28,6 @@ export function failure(message: string, code: string, details?: unknown): Error
 }
 
 /** Send a success response with an HTTP status (default 200). */
-export function sendSuccess<T>(
-  res: Response,
-  data: T,
-  status = 200,
-  meta?: Record<string, unknown>
-): Response {
+export function sendSuccess<T>(res: Response, data: T, status = 200, meta?: object): Response {
   return res.status(status).json(success(data, meta));
 }

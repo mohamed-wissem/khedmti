@@ -2,9 +2,10 @@ import { API_BASE_PATH } from "@/config/constants";
 import type { OpenApiFragment } from "@/docs/openapi/types";
 import { authDocs } from "@/docs/openapi/auth.openapi";
 import { usersDocs } from "@/docs/openapi/users.openapi";
+import { catalogDocs } from "@/docs/openapi/catalog.openapi";
 
 /** Module fragments merged into the base document below. */
-const fragments: OpenApiFragment[] = [authDocs, usersDocs];
+const fragments: OpenApiFragment[] = [authDocs, usersDocs, catalogDocs];
 
 /**
  * Base OpenAPI 3.1 document. Feature modules contribute path/tag/schema

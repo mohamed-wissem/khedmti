@@ -3,6 +3,7 @@ import { asyncHandler } from "@/utils/asyncHandler";
 import { authenticate } from "@/middleware/authenticate";
 import { validate } from "@/middleware/validate";
 import * as ctrl from "@/modules/users/users.controller";
+import { wishlistRouter } from "@/modules/wishlist/wishlist.routes";
 import {
   updateProfileSchema,
   changePasswordSchema,
@@ -15,6 +16,9 @@ export const usersRouter = Router();
 
 // All user routes require authentication.
 usersRouter.use(authenticate);
+
+// Wishlist (GET /me/wishlist, POST/DELETE /me/wishlist/:productId).
+usersRouter.use("/me/wishlist", wishlistRouter);
 
 usersRouter.get("/me", asyncHandler(ctrl.getMe));
 usersRouter.patch("/me", validate({ body: updateProfileSchema }), asyncHandler(ctrl.updateMe));
