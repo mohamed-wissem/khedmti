@@ -91,6 +91,8 @@ model User {
   addresses     Address[]
   auditLogs     AuditLog[]
   wishlist      WishlistItem[]
+  cart          Cart?
+  couponUses    CouponRedemption[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -264,6 +266,7 @@ model Product {
   images     ProductImage[]
   specs      ProductSpec[]
   wishlisted WishlistItem[]
+  cartItems  CartItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -286,6 +289,7 @@ model ProductVariant {
   stock      Int     @default(0)
   active     Boolean @default(true)
   product    Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartItems  CartItem[]
 
   @@unique([productId, color, size])
   @@index([productId])
@@ -330,5 +334,80 @@ model WishlistItem {
   @@unique([userId, productId])
   @@index([productId])
   @@map("wishlist_item")
+  @@schema("bfapi")
+}
+
+// ===========================================================================
+// Sprint 3 — Cart & Coupons.
+// ===========================================================================
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String?    @unique
+  guestId   String?    @unique
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("cart")
+  @@schema("bfapi")
+}
+
+model CartItem {
+  id        String          @id @default(cuid())
+  cartId    String
+  productId String
+  variantId String?
+  quantity  Int             @default(1)
+  cart      Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@unique([cartId, productId, variantId])
+  @@index([cartId])
+  @@map("cart_item")
+  @@schema("bfapi")
+}
+
+enum CouponType {
+  PERCENT
+  FIXED
+
+  @@schema("bfapi")
+}
+
+model Coupon {
+  id             String             @id @default(cuid())
+  code           String             @unique
+  type           CouponType
+  value          Int
+  maxRedemptions Int?
+  redeemedCount  Int                @default(0)
+  perUserLimit   Int?
+  minSpendCents  Int?
+  startsAt       DateTime?
+  expiresAt      DateTime?
+  active         Boolean            @default(true)
+  redemptions    CouponRedemption[]
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@index([active, expiresAt])
+  @@map("coupon")
+  @@schema("bfapi")
+}
+
+model CouponRedemption {
+  id        String   @id @default(cuid())
+  couponId  String
+  userId    String
+  orderId   String?
+  coupon    Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([couponId, userId])
+  @@map("coupon_redemption")
   @@schema("bfapi")
 }
