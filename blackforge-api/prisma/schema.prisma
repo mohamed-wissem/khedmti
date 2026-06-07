@@ -1,0 +1,24 @@
+// BLACKFORGE API — Prisma schema.
+//
+// Sprint 0: foundation only. NO business models yet — those arrive in Sprint 1+
+// (see blackforge-api/ARCHITECTURE.md §5 for the full target schema).
+//
+// The API owns its own Postgres schema, `bfapi`, inside the shared Neon database.
+// It MUST NEVER touch `public` (Django) or `blackforge` (storefront). Every model
+// added in future sprints must declare `@@schema("bfapi")`.
+
+generator client {
+  provider = "prisma-client-js"
+  // "native" for local dev; "debian-openssl-3.0.x" for the Docker runtime image.
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
+  schemas   = ["bfapi"]
+}
+
+// ── Models start in Sprint 1 (Role, Permission, User, RefreshToken, ...). ──
+// Until then, readiness checks use a raw `SELECT 1`, which needs no models.
