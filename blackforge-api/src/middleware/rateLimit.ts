@@ -1,17 +1,30 @@
-import rateLimit from "express-rate-limit";
+import { rateLimit, type Store } from "express-rate-limit";
+import { RedisStore } from "rate-limit-redis";
 import { config } from "@/config";
+import { isProduction } from "@/config/env";
+import { redis } from "@/config/redis";
 import { failure } from "@/utils/apiResponse";
 
 /**
- * Baseline global rate limiter. Per-route stricter buckets (e.g. on /auth) and a
- * Redis-backed store for multi-instance deployments are added in later sprints.
+ * In production, back the limiter with Redis so limits are shared across
+ * instances. In dev/test, use the default in-memory store (no Redis dependency).
  */
+function makeStore(prefix: string): Store | undefined {
+  if (!isProduction) return undefined;
+  return new RedisStore({
+    prefix,
+    sendCommand: (command: string, ...args: string[]) =>
+      redis.call(command, ...args) as Promise<never>,
+  });
+}
+
+/** Baseline global limiter (health probes are exempt). */
 export const globalRateLimiter = rateLimit({
   windowMs: config.rateLimit.windowMs,
   max: config.rateLimit.max,
   standardHeaders: true,
   legacyHeaders: false,
-  // Don't rate-limit health probes (load balancers hit them frequently).
+  store: makeStore("rl:global:"),
   skip: (req) => req.path.startsWith("/health"),
   handler: (_req, res) => {
     res
@@ -26,6 +39,7 @@ export const authRateLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  store: makeStore("rl:auth:"),
   handler: (_req, res) => {
     res
       .status(429)

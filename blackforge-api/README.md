@@ -3,11 +3,22 @@
 Production-grade backend that powers the [BLACKFORGE storefront](https://khedmti-storefront.vercel.app).
 Node.js · TypeScript · Express · Prisma · PostgreSQL (Neon) · Redis.
 
-> **Status: Sprint 0 — Foundations.** This is the scaffold every future sprint
-> builds on: config, observability, security baseline, health checks, error
-> handling, Swagger, Docker and CI. There are **no feature endpoints yet** (auth,
-> products, orders, payments arrive in Sprint 1+). See
-> [`ARCHITECTURE.md`](./ARCHITECTURE.md) for the full plan.
+> **Status: Sprints 0–7 complete.** Foundation, auth + RBAC, catalog, cart +
+> coupons, orders + Stripe payments, reviews + gamification, admin + analytics,
+> and hardening are all implemented. See [`ARCHITECTURE.md`](./ARCHITECTURE.md)
+> for the full plan and [`docs/PRODUCTION.md`](./docs/PRODUCTION.md) for the
+> deployment runbook. Full API reference at `/docs` (Swagger UI).
+
+## Feature map
+
+| Area | Endpoints |
+| --- | --- |
+| Auth & RBAC | `/auth/*` (register, login, refresh, logout, verify, reset, Google OAuth) |
+| Users | `/users/me`, addresses, wishlist, gamification, referral |
+| Catalog | `/products`, `/categories`, `/brands`, `/search` |
+| Commerce | `/cart`, `/coupons`, `/orders`, `/payments` (Stripe + webhook) |
+| Community | `/reviews` (verified-purchase + moderation) |
+| Admin | `/admin/users`, `/admin/analytics/*`, `/admin/audit-logs` |
 
 ## Requirements
 

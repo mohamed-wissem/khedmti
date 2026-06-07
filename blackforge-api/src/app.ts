@@ -2,6 +2,7 @@ import express, { type Express } from "express";
 import helmet from "helmet";
 import cors from "cors";
 import compression from "compression";
+import hpp from "hpp";
 import swaggerUi from "swagger-ui-express";
 
 import { config } from "@/config";
@@ -29,7 +30,14 @@ export function createApp(): Express {
   app.use(requestContext);
 
   // ── Security & performance baseline ───────────────────────────────────────
-  app.use(helmet());
+  app.use(
+    helmet({
+      // The API serves JSON + Swagger UI; allow the docs assets to load.
+      contentSecurityPolicy: config.isProduction ? undefined : false,
+      crossOriginEmbedderPolicy: false,
+      hsts: config.isProduction ? { maxAge: 15552000, includeSubDomains: true } : false,
+    })
+  );
   app.use(
     cors({
       origin: config.cors.origins === "*" ? true : config.cors.origins,
@@ -49,6 +57,9 @@ export function createApp(): Express {
     })
   );
   app.use(express.urlencoded({ extended: true, limit: config.server.bodyLimit }));
+
+  // Guard against HTTP parameter pollution (after body parsing).
+  app.use(hpp());
 
   // ── Rate limiting ─────────────────────────────────────────────────────────
   app.use(globalRateLimiter);

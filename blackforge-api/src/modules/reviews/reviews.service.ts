@@ -1,5 +1,6 @@
 import { AppError } from "@/utils/apiError";
 import { getPageQuery, pageMeta } from "@/utils/pagination";
+import { sanitizeOptional } from "@/utils/sanitize";
 import { recordAudit } from "@/services/audit.service";
 import * as productsRepo from "@/modules/products/products.repository";
 import { PERMISSIONS } from "@/modules/rbac/permissions";
@@ -21,8 +22,8 @@ export async function create(
   // Created PENDING; visible (and counted) only once moderated.
   return repo.create({
     rating: input.rating,
-    title: input.title,
-    body: input.body,
+    title: sanitizeOptional(input.title),
+    body: sanitizeOptional(input.body),
     product: { connect: { id: input.productId } },
     user: { connect: { id: userId } },
   });
@@ -45,7 +46,12 @@ export async function update(
   if (!review) throw AppError.notFound("Review not found");
   if (review.userId !== userId) throw AppError.forbidden("You can only edit your own review");
 
-  const updated = await repo.update(id, { ...input, status: "PENDING" });
+  const updated = await repo.update(id, {
+    rating: input.rating,
+    title: sanitizeOptional(input.title),
+    body: sanitizeOptional(input.body),
+    status: "PENDING",
+  });
   await repo.recomputeRating(review.productId); // edited review leaves the approved set
   return updated;
 }
