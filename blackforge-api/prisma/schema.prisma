@@ -1,0 +1,541 @@
+// BLACKFORGE API — Prisma schema.
+//
+// Sprint 0: foundation only. NO business models yet — those arrive in Sprint 1+
+// (see blackforge-api/ARCHITECTURE.md §5 for the full target schema).
+//
+// The API owns its own Postgres schema, `bfapi`, inside the shared Neon database.
+// It MUST NEVER touch `public` (Django) or `blackforge` (storefront). Every model
+// added in future sprints must declare `@@schema("bfapi")`.
+
+generator client {
+  provider = "prisma-client-js"
+  // "native" for local dev; "debian-openssl-3.0.x" for the Docker runtime image.
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
+  schemas   = ["bfapi"]
+}
+
+// ===========================================================================
+// Sprint 1 — Auth, RBAC, addresses, audit.
+// Relations to later-sprint models (Order, Review, Cart, ...) are added in the
+// sprint that introduces them, keeping each migration self-contained.
+// ===========================================================================
+
+// ---------- RBAC ----------
+model Role {
+  id          String           @id @default(cuid())
+  name        String           @unique // ADMIN, STAFF, CUSTOMER
+  description String?
+  permissions RolePermission[]
+  users       User[]
+  createdAt   DateTime         @default(now())
+
+  @@map("role")
+  @@schema("bfapi")
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  key         String           @unique // e.g. "product:write"
+  description String?
+  roles       RolePermission[]
+
+  @@map("permission")
+  @@schema("bfapi")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+  @@map("role_permission")
+  @@schema("bfapi")
+}
+
+// ---------- Users / auth ----------
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  passwordHash  String?
+  roleId        String
+  role          Role      @relation(fields: [roleId], references: [id])
+
+  // Gamification (wired up fully in Sprint 5)
+  xp          Int       @default(0)
+  level       Int       @default(1)
+  creditCents Int       @default(0)
+  streak      Int       @default(0)
+  lastClaimAt DateTime?
+
+  // Referrals
+  referralCode String? @unique
+  referredById String?
+  referredBy   User?   @relation("Referrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals    User[]  @relation("Referrals")
+
+  oauthAccounts OAuthAccount[]
+  refreshTokens RefreshToken[]
+  verifyTokens  VerificationToken[]
+  addresses     Address[]
+  auditLogs     AuditLog[]
+  wishlist      WishlistItem[]
+  cart          Cart?
+  couponUses    CouponRedemption[]
+  orders        Order[]
+  reviews       Review[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([roleId])
+  @@map("user")
+  @@schema("bfapi")
+}
+
+model OAuthAccount {
+  id                String  @id @default(cuid())
+  userId            String
+  provider          String // "google"
+  providerAccountId String
+  accessToken       String?
+  refreshToken      String?
+  expiresAt         Int?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("oauth_account")
+  @@schema("bfapi")
+}
+
+model RefreshToken {
+  id         String    @id @default(cuid())
+  userId     String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  replacedBy String?
+  userAgent  String?
+  ip         String?
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+  @@map("refresh_token")
+  @@schema("bfapi")
+}
+
+enum TokenType {
+  EMAIL_VERIFY
+  PASSWORD_RESET
+
+  @@schema("bfapi")
+}
+
+model VerificationToken {
+  id         String    @id @default(cuid())
+  userId     String
+  type       TokenType
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, type])
+  @@map("verification_token")
+  @@schema("bfapi")
+}
+
+enum AddressType {
+  SHIPPING
+  BILLING
+
+  @@schema("bfapi")
+}
+
+model Address {
+  id         String      @id @default(cuid())
+  userId     String
+  type       AddressType @default(SHIPPING)
+  fullName   String
+  line1      String
+  line2      String?
+  city       String
+  state      String?
+  postalCode String
+  country    String
+  phone      String?
+  isDefault  Boolean     @default(false)
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders     Order[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([userId])
+  @@map("address")
+  @@schema("bfapi")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String // "auth.login", "product.update", "order.refund"
+  entity    String?
+  entityId  String?
+  metadata  Json?
+  ip        String?
+  userAgent String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@map("audit_log")
+  @@schema("bfapi")
+}
+
+// ===========================================================================
+// Sprint 2 — Catalog (categories, brands, products, variants, images, specs)
+// and wishlist.
+// ===========================================================================
+
+enum Rarity {
+  COMMON
+  PREMIUM
+  LEGENDARY
+
+  @@schema("bfapi")
+}
+
+model Category {
+  id       String     @id @default(cuid())
+  slug     String     @unique
+  name     String
+  parentId String?
+  parent   Category?  @relation("SubCats", fields: [parentId], references: [id], onDelete: SetNull)
+  children Category[] @relation("SubCats")
+  products Product[]
+  createdAt DateTime  @default(now())
+
+  @@index([parentId])
+  @@map("category")
+  @@schema("bfapi")
+}
+
+model Brand {
+  id       String    @id @default(cuid())
+  slug     String    @unique
+  name     String
+  logoUrl  String?
+  products Product[]
+  createdAt DateTime @default(now())
+
+  @@map("brand")
+  @@schema("bfapi")
+}
+
+model Product {
+  id           String  @id @default(cuid())
+  slug         String  @unique
+  title        String
+  description  String?
+  platform     String?
+  categoryId   String
+  brandId      String?
+  rarity       Rarity  @default(COMMON)
+  priceCents   Int
+  compareCents Int?
+  instant      Boolean @default(true)
+  active       Boolean @default(true)
+  avgRating    Float   @default(0)
+  reviewCount  Int     @default(0)
+
+  category   Category         @relation(fields: [categoryId], references: [id])
+  brand      Brand?           @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  variants   ProductVariant[]
+  images     ProductImage[]
+  specs      ProductSpec[]
+  wishlisted WishlistItem[]
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+  reviews    Review[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([active, priceCents])
+  @@index([avgRating])
+  @@map("product")
+  @@schema("bfapi")
+}
+
+model ProductVariant {
+  id         String  @id @default(cuid())
+  productId  String
+  sku        String  @unique
+  color      String?
+  size       String?
+  priceCents Int?
+  stock      Int     @default(0)
+  active     Boolean @default(true)
+  product    Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  @@unique([productId, color, size])
+  @@index([productId])
+  @@map("product_variant")
+  @@schema("bfapi")
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  productId String
+  url       String
+  publicId  String
+  alt       String?
+  position  Int     @default(0)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_image")
+  @@schema("bfapi")
+}
+
+model ProductSpec {
+  id        String  @id @default(cuid())
+  productId String
+  key       String
+  value     String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_spec")
+  @@schema("bfapi")
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+  @@index([productId])
+  @@map("wishlist_item")
+  @@schema("bfapi")
+}
+
+// ===========================================================================
+// Sprint 3 — Cart & Coupons.
+// ===========================================================================
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String?    @unique
+  guestId   String?    @unique
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@map("cart")
+  @@schema("bfapi")
+}
+
+model CartItem {
+  id        String          @id @default(cuid())
+  cartId    String
+  productId String
+  variantId String?
+  quantity  Int             @default(1)
+  cart      Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@unique([cartId, productId, variantId])
+  @@index([cartId])
+  @@map("cart_item")
+  @@schema("bfapi")
+}
+
+enum CouponType {
+  PERCENT
+  FIXED
+
+  @@schema("bfapi")
+}
+
+model Coupon {
+  id             String             @id @default(cuid())
+  code           String             @unique
+  type           CouponType
+  value          Int
+  maxRedemptions Int?
+  redeemedCount  Int                @default(0)
+  perUserLimit   Int?
+  minSpendCents  Int?
+  startsAt       DateTime?
+  expiresAt      DateTime?
+  active         Boolean            @default(true)
+  redemptions    CouponRedemption[]
+  orders         Order[]
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@index([active, expiresAt])
+  @@map("coupon")
+  @@schema("bfapi")
+}
+
+model CouponRedemption {
+  id        String   @id @default(cuid())
+  couponId  String
+  userId    String
+  orderId   String?
+  coupon    Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([couponId, userId])
+  @@map("coupon_redemption")
+  @@schema("bfapi")
+}
+
+// ===========================================================================
+// Sprint 4 — Orders & Payments.
+// ===========================================================================
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FULFILLED
+  SHIPPED
+  REFUNDED
+  CANCELLED
+
+  @@schema("bfapi")
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  number        String      @unique
+  userId        String?
+  email         String
+  status        OrderStatus @default(PENDING)
+  subtotalCents Int
+  discountCents Int         @default(0)
+  totalCents    Int
+  couponId      String?
+  addressId     String?
+  trackingCode  String?
+  user          User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  coupon        Coupon?     @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  address       Address?    @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  items         OrderItem[]
+  payment       Payment?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@map("order")
+  @@schema("bfapi")
+}
+
+model OrderItem {
+  id           String          @id @default(cuid())
+  orderId      String
+  productId    String
+  variantId    String?
+  title        String
+  quantity     Int             @default(1)
+  priceCents   Int
+  deliveredKey String?
+  order        Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product      Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
+  variant      ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@map("order_item")
+  @@schema("bfapi")
+}
+
+enum PaymentStatus {
+  REQUIRES_PAYMENT
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+
+  @@schema("bfapi")
+}
+
+model Payment {
+  id                    String        @id @default(cuid())
+  orderId               String        @unique
+  provider              String        @default("stripe")
+  stripePaymentIntentId String?       @unique
+  stripeChargeId        String?
+  amountCents           Int
+  currency              String        @default("usd")
+  status                PaymentStatus @default(REQUIRES_PAYMENT)
+  refundedCents         Int           @default(0)
+  rawEvent              Json?
+  order                 Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@index([status])
+  @@map("payment")
+  @@schema("bfapi")
+}
+
+// ===========================================================================
+// Sprint 5 — Reviews.
+// ===========================================================================
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+
+  @@schema("bfapi")
+}
+
+model Review {
+  id        String       @id @default(cuid())
+  productId String
+  userId    String
+  rating    Int
+  title     String?
+  body      String?
+  status    ReviewStatus @default(PENDING)
+  product   Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@unique([productId, userId])
+  @@index([productId, status])
+  @@map("review")
+  @@schema("bfapi")
+}

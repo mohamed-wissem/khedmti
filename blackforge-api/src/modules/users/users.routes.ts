@@ -1,0 +1,50 @@
+import { Router } from "express";
+import { asyncHandler } from "@/utils/asyncHandler";
+import { authenticate } from "@/middleware/authenticate";
+import { validate } from "@/middleware/validate";
+import * as ctrl from "@/modules/users/users.controller";
+import { wishlistRouter } from "@/modules/wishlist/wishlist.routes";
+import { gamificationRouter } from "@/modules/gamification/gamification.routes";
+import {
+  updateProfileSchema,
+  changePasswordSchema,
+  addressSchema,
+  addressUpdateSchema,
+  idParamSchema,
+} from "@/modules/users/users.validators";
+
+export const usersRouter = Router();
+
+// All user routes require authentication.
+usersRouter.use(authenticate);
+
+// Wishlist (GET /me/wishlist, POST/DELETE /me/wishlist/:productId).
+usersRouter.use("/me/wishlist", wishlistRouter);
+
+// Gamification (GET /me/gamification, POST /me/daily-claim, GET /me/referral).
+usersRouter.use("/me", gamificationRouter);
+
+usersRouter.get("/me", asyncHandler(ctrl.getMe));
+usersRouter.patch("/me", validate({ body: updateProfileSchema }), asyncHandler(ctrl.updateMe));
+usersRouter.post(
+  "/me/change-password",
+  validate({ body: changePasswordSchema }),
+  asyncHandler(ctrl.changePassword)
+);
+
+usersRouter.get("/me/addresses", asyncHandler(ctrl.listAddresses));
+usersRouter.post(
+  "/me/addresses",
+  validate({ body: addressSchema }),
+  asyncHandler(ctrl.createAddress)
+);
+usersRouter.patch(
+  "/me/addresses/:id",
+  validate({ params: idParamSchema, body: addressUpdateSchema }),
+  asyncHandler(ctrl.updateAddress)
+);
+usersRouter.delete(
+  "/me/addresses/:id",
+  validate({ params: idParamSchema }),
+  asyncHandler(ctrl.deleteAddress)
+);
