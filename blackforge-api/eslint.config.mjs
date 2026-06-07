@@ -37,5 +37,12 @@ export default tseslint.config(
       "@typescript-eslint/no-explicit-any": "off",
     },
   },
+  // Scripts (seed, tooling) legitimately log to the console.
+  {
+    files: ["prisma/**/*.ts"],
+    rules: {
+      "no-console": "off",
+    },
+  },
   prettier
 );

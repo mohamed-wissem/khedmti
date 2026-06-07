@@ -46,9 +46,37 @@ export const config = {
     url: env.REDIS_URL,
   },
 
+  appUrl: env.APP_URL.replace(/\/$/, ""),
+
   jwt: {
     accessSecret: env.JWT_SECRET,
     refreshSecret: env.JWT_REFRESH_SECRET,
+    accessTtl: env.ACCESS_TOKEN_TTL,
+    refreshTtlDays: env.REFRESH_TOKEN_TTL_DAYS,
+  },
+
+  bcryptRounds: env.BCRYPT_ROUNDS,
+
+  email: {
+    smtpUrl: env.SMTP_URL,
+    from: env.EMAIL_FROM,
+    get enabled(): boolean {
+      return Boolean(env.SMTP_URL);
+    },
+  },
+
+  admin: {
+    email: env.ADMIN_EMAIL,
+    password: env.ADMIN_PASSWORD,
+  },
+
+  google: {
+    clientId: env.GOOGLE_CLIENT_ID,
+    clientSecret: env.GOOGLE_CLIENT_SECRET,
+    callbackUrl: env.GOOGLE_CALLBACK_URL,
+    get enabled(): boolean {
+      return Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET && env.GOOGLE_CALLBACK_URL);
+    },
   },
 
   stripe: {

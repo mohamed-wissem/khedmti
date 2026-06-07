@@ -19,3 +19,16 @@ export const globalRateLimiter = rateLimit({
       .json(failure("Too many requests, please try again later.", "TOO_MANY_REQUESTS"));
   },
 });
+
+/** Stricter limiter for sensitive auth endpoints (login, register, reset). */
+export const authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (_req, res) => {
+    res
+      .status(429)
+      .json(failure("Too many attempts, please try again later.", "TOO_MANY_REQUESTS"));
+  },
+});

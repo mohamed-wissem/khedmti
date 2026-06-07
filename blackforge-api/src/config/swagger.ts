@@ -1,12 +1,16 @@
 import { API_BASE_PATH } from "@/config/constants";
+import type { OpenApiFragment } from "@/docs/openapi/types";
+import { authDocs } from "@/docs/openapi/auth.openapi";
+import { usersDocs } from "@/docs/openapi/users.openapi";
+
+/** Module fragments merged into the base document below. */
+const fragments: OpenApiFragment[] = [authDocs, usersDocs];
 
 /**
- * Base OpenAPI 3.1 document. Feature modules will contribute their own path and
- * schema fragments (from `src/docs/openapi/`) in later sprints — those get merged
- * into `paths` / `components.schemas` here. For Sprint 0 only the health checks
- * and the shared error/success schemas are documented.
+ * Base OpenAPI 3.1 document. Feature modules contribute path/tag/schema
+ * fragments from `src/docs/openapi/`, merged in via `fragments` above.
  */
-export const openApiDocument = {
+const baseDocument = {
   openapi: "3.1.0",
   info: {
     title: "BLACKFORGE API",
@@ -77,4 +81,21 @@ export const openApiDocument = {
       },
     },
   },
-} as const;
+};
+
+/** Merge all module fragments into the base document. */
+function buildDocument() {
+  const doc = structuredClone(baseDocument) as typeof baseDocument & {
+    tags: { name: string; description?: string }[];
+    paths: Record<string, unknown>;
+    components: { schemas: Record<string, unknown>; securitySchemes: Record<string, unknown> };
+  };
+  for (const f of fragments) {
+    if (f.tags) doc.tags.push(...f.tags);
+    if (f.paths) Object.assign(doc.paths, f.paths);
+    if (f.schemas) Object.assign(doc.components.schemas, f.schemas);
+  }
+  return doc;
+}
+
+export const openApiDocument = buildDocument();

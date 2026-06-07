@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { sendSuccess } from "@/utils/apiResponse";
+import { authRouter } from "@/modules/auth/auth.routes";
+import { usersRouter } from "@/modules/users/users.routes";
 
 /**
- * API v1 router. Feature module routers (auth, products, orders, ...) get mounted
- * here in later sprints, e.g. `apiRouter.use("/auth", authRouter)`.
+ * API v1 router. Feature module routers are mounted here as sprints land.
  */
 export const apiRouter = Router();
 
@@ -14,3 +15,6 @@ apiRouter.get("/", (_req, res) => {
     docs: "/docs",
   });
 });
+
+apiRouter.use("/auth", authRouter);
+apiRouter.use("/users", usersRouter);
