@@ -4,9 +4,10 @@ import { authDocs } from "@/docs/openapi/auth.openapi";
 import { usersDocs } from "@/docs/openapi/users.openapi";
 import { catalogDocs } from "@/docs/openapi/catalog.openapi";
 import { commerceDocs } from "@/docs/openapi/commerce.openapi";
+import { ordersDocs } from "@/docs/openapi/orders.openapi";
 
 /** Module fragments merged into the base document below. */
-const fragments: OpenApiFragment[] = [authDocs, usersDocs, catalogDocs, commerceDocs];
+const fragments: OpenApiFragment[] = [authDocs, usersDocs, catalogDocs, commerceDocs, ordersDocs];
 
 /**
  * Base OpenAPI 3.1 document. Feature modules contribute path/tag/schema

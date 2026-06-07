@@ -93,6 +93,7 @@ model User {
   wishlist      WishlistItem[]
   cart          Cart?
   couponUses    CouponRedemption[]
+  orders        Order[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -178,6 +179,7 @@ model Address {
   phone      String?
   isDefault  Boolean     @default(false)
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders     Order[]
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
 
@@ -267,6 +269,7 @@ model Product {
   specs      ProductSpec[]
   wishlisted WishlistItem[]
   cartItems  CartItem[]
+  orderItems OrderItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -290,6 +293,7 @@ model ProductVariant {
   active     Boolean @default(true)
   product    Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   cartItems  CartItem[]
+  orderItems OrderItem[]
 
   @@unique([productId, color, size])
   @@index([productId])
@@ -390,6 +394,7 @@ model Coupon {
   expiresAt      DateTime?
   active         Boolean            @default(true)
   redemptions    CouponRedemption[]
+  orders         Order[]
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 
@@ -409,5 +414,95 @@ model CouponRedemption {
 
   @@index([couponId, userId])
   @@map("coupon_redemption")
+  @@schema("bfapi")
+}
+
+// ===========================================================================
+// Sprint 4 — Orders & Payments.
+// ===========================================================================
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FULFILLED
+  SHIPPED
+  REFUNDED
+  CANCELLED
+
+  @@schema("bfapi")
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  number        String      @unique
+  userId        String?
+  email         String
+  status        OrderStatus @default(PENDING)
+  subtotalCents Int
+  discountCents Int         @default(0)
+  totalCents    Int
+  couponId      String?
+  addressId     String?
+  trackingCode  String?
+  user          User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  coupon        Coupon?     @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  address       Address?    @relation(fields: [addressId], references: [id], onDelete: SetNull)
+  items         OrderItem[]
+  payment       Payment?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@map("order")
+  @@schema("bfapi")
+}
+
+model OrderItem {
+  id           String          @id @default(cuid())
+  orderId      String
+  productId    String
+  variantId    String?
+  title        String
+  quantity     Int             @default(1)
+  priceCents   Int
+  deliveredKey String?
+  order        Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product      Product         @relation(fields: [productId], references: [id], onDelete: Restrict)
+  variant      ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@map("order_item")
+  @@schema("bfapi")
+}
+
+enum PaymentStatus {
+  REQUIRES_PAYMENT
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+
+  @@schema("bfapi")
+}
+
+model Payment {
+  id                    String        @id @default(cuid())
+  orderId               String        @unique
+  provider              String        @default("stripe")
+  stripePaymentIntentId String?       @unique
+  stripeChargeId        String?
+  amountCents           Int
+  currency              String        @default("usd")
+  status                PaymentStatus @default(REQUIRES_PAYMENT)
+  refundedCents         Int           @default(0)
+  rawEvent              Json?
+  order                 Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@index([status])
+  @@map("payment")
   @@schema("bfapi")
 }

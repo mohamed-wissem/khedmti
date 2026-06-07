@@ -39,7 +39,15 @@ export function createApp(): Express {
   app.use(compression());
 
   // ── Body parsing with size limits ─────────────────────────────────────────
-  app.use(express.json({ limit: config.server.bodyLimit }));
+  // Capture the raw body so the Stripe webhook can verify its signature.
+  app.use(
+    express.json({
+      limit: config.server.bodyLimit,
+      verify: (req, _res, buf) => {
+        (req as express.Request).rawBody = buf;
+      },
+    })
+  );
   app.use(express.urlencoded({ extended: true, limit: config.server.bodyLimit }));
 
   // ── Rate limiting ─────────────────────────────────────────────────────────

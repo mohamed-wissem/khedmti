@@ -8,6 +8,8 @@ import { brandsRouter } from "@/modules/brands/brands.routes";
 import { searchRouter } from "@/modules/search/search.routes";
 import { cartRouter } from "@/modules/cart/cart.routes";
 import { couponsRouter } from "@/modules/coupons/coupons.routes";
+import { ordersRouter } from "@/modules/orders/orders.routes";
+import { paymentsRouter } from "@/modules/payments/payments.routes";
 
 /**
  * API v1 router. Feature module routers are mounted here as sprints land.
@@ -30,3 +32,5 @@ apiRouter.use("/brands", brandsRouter);
 apiRouter.use("/search", searchRouter);
 apiRouter.use("/cart", cartRouter);
 apiRouter.use("/coupons", couponsRouter);
+apiRouter.use("/orders", ordersRouter);
+apiRouter.use("/payments", paymentsRouter);
