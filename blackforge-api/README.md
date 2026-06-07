@@ -63,6 +63,8 @@ open  http://localhost:4000/docs          # Swagger UI
 | `npm run prisma:generate` | Regenerate Prisma client |
 | `npm run prisma:migrate` | Create/apply a dev migration (Sprint 1+) |
 | `npm run prisma:deploy` | Apply migrations in prod/CI |
+| `npm run prisma:seed` | Seed RBAC roles/permissions (+ optional admin) |
+| `npm run create:admin` | Create/promote an admin user (args, env, or prompt) |
 
 ## Environment variables
 
