@@ -4,6 +4,7 @@ import { authenticate } from "@/middleware/authenticate";
 import { validate } from "@/middleware/validate";
 import * as ctrl from "@/modules/users/users.controller";
 import { wishlistRouter } from "@/modules/wishlist/wishlist.routes";
+import { gamificationRouter } from "@/modules/gamification/gamification.routes";
 import {
   updateProfileSchema,
   changePasswordSchema,
@@ -19,6 +20,9 @@ usersRouter.use(authenticate);
 
 // Wishlist (GET /me/wishlist, POST/DELETE /me/wishlist/:productId).
 usersRouter.use("/me/wishlist", wishlistRouter);
+
+// Gamification (GET /me/gamification, POST /me/daily-claim, GET /me/referral).
+usersRouter.use("/me", gamificationRouter);
 
 usersRouter.get("/me", asyncHandler(ctrl.getMe));
 usersRouter.patch("/me", validate({ body: updateProfileSchema }), asyncHandler(ctrl.updateMe));

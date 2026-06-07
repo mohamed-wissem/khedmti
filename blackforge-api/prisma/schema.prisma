@@ -94,6 +94,7 @@ model User {
   cart          Cart?
   couponUses    CouponRedemption[]
   orders        Order[]
+  reviews       Review[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -270,6 +271,7 @@ model Product {
   wishlisted WishlistItem[]
   cartItems  CartItem[]
   orderItems OrderItem[]
+  reviews    Review[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -504,5 +506,36 @@ model Payment {
 
   @@index([status])
   @@map("payment")
+  @@schema("bfapi")
+}
+
+// ===========================================================================
+// Sprint 5 — Reviews.
+// ===========================================================================
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+
+  @@schema("bfapi")
+}
+
+model Review {
+  id        String       @id @default(cuid())
+  productId String
+  userId    String
+  rating    Int
+  title     String?
+  body      String?
+  status    ReviewStatus @default(PENDING)
+  product   Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@unique([productId, userId])
+  @@index([productId, status])
+  @@map("review")
   @@schema("bfapi")
 }
