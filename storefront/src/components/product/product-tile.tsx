@@ -1,13 +1,15 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Eye, Zap } from "lucide-react";
 import type { Product, Rarity } from "@prisma/client";
 import { cn } from "@/lib/utils";
 import { formatCents } from "@/lib/format";
 import { WishlistButton } from "@/components/product/wishlist-button";
+import { getGameArt } from "@/lib/game-art";
 
 export type ProductCard = Pick<
   Product,
-  "id" | "slug" | "title" | "platform" | "priceCents" | "compareCents" | "rarity" | "instant"
+  "id" | "slug" | "title" | "platform" | "priceCents" | "compareCents" | "rarity" | "instant" | "imageUrl"
 >;
 
 const rarityRibbon: Record<Rarity, string> = {
@@ -26,6 +28,14 @@ export function ProductTile({ product, wishlisted = false }: { product: ProductC
       <Link href={`/product/${slug}`} className="absolute inset-0 z-0" aria-label={title} />
 
       <div className="relative aspect-[3/4] overflow-hidden bg-gradient-to-br from-iron to-void">
+        <Image
+          fill
+          src={product.imageUrl ?? getGameArt(product.title)}
+          alt={title}
+          sizes="(min-width: 1280px) 20vw, (min-width: 768px) 33vw, 50vw"
+          unoptimized
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+        />
         <div className="absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_20%,rgba(194,65,12,0.18),transparent_70%)]" />
 
         {rarity !== "COMMON" && (

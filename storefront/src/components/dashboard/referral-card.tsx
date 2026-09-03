@@ -1,15 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Copy, Check, Users } from "lucide-react";
 
 export function ReferralCard({ code, referrals }: { code: string; referrals: number }) {
-  const [link, setLink] = useState(`/register?ref=${code}`);
+  const link =
+    typeof window === "undefined"
+      ? `/register?ref=${code}`
+      : `${window.location.origin}/register?ref=${code}`;
   const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    setLink(`${window.location.origin}/register?ref=${code}`);
-  }, [code]);
 
   const copy = async () => {
     try {

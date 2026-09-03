@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Zap, ShieldCheck, RotateCcw, Star, ChevronDown, Flame } from "lucide-react";
@@ -8,6 +9,7 @@ import { AddToCart } from "@/components/cart/add-to-cart";
 import { BuyNow } from "@/components/cart/buy-now";
 import { ProductTile } from "@/components/product/product-tile";
 import { JsonLd } from "@/components/seo/json-ld";
+import { getGameArt } from "@/lib/game-art";
 import { SITE_URL } from "@/lib/site";
 
 export async function generateMetadata({
@@ -88,6 +90,14 @@ export default async function ProductPage({
       <div className="grid gap-10 lg:grid-cols-2">
         {/* Media */}
         <div className="relative aspect-[4/5] overflow-hidden rounded-bf border border-ash/60 bg-gradient-to-br from-iron to-void">
+          <Image
+            fill
+            src={product.imageUrl ?? getGameArt(product.title)}
+            alt={product.title}
+            sizes="(min-width: 1024px) 50vw, 100vw"
+            unoptimized
+            className="h-full w-full object-cover"
+          />
           <div className="absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_25%,rgba(194,65,12,0.2),transparent_70%)]" />
           {product.rarity !== "COMMON" && (
             <span className="absolute left-4 top-4 rounded-bf border border-bronze/60 bg-void/70 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-bronze backdrop-blur">

@@ -3,6 +3,7 @@ import { ArrowRight, Flame, Gamepad2, UserRound, Gift, Coins, Crown, Headphones,
 import { Button } from "@/components/ui/button";
 import { ProductTile } from "@/components/product/product-tile";
 import { listProducts } from "@/lib/products";
+import { getGameArt } from "@/lib/game-art";
 
 const PORTALS = [
   { label: "Games", href: "/category/games", icon: Gamepad2 },
@@ -19,10 +20,108 @@ const TRUST = [
   { icon: Star, label: "4.9/5 · 12,480 reviews" },
 ];
 
+// Mock products for development when database is unavailable
+const MOCK_PRODUCTS = [
+  {
+    id: "1",
+    slug: "eclipse-saga-ultimate",
+    title: "Eclipse Saga: Ultimate Edition",
+    description: "Action RPG masterpiece",
+    platform: "PC · Steam",
+    priceCents: 5999,
+    compareCents: 5999,
+    category: "GAME" as const,
+    rarity: "LEGENDARY" as const,
+    instant: true,
+    active: true,
+    imageUrl: getGameArt("eclipse-saga-ultimate"),
+    stock: 999,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "2",
+    slug: "rune-shards-12000",
+    title: "12,000 Rune Shards",
+    description: "In-game currency",
+    platform: "In-Game Currency",
+    priceCents: 1999,
+    compareCents: 1999,
+    category: "CURRENCY" as const,
+    rarity: "COMMON" as const,
+    instant: true,
+    active: true,
+    imageUrl: getGameArt("rune-shards-12000"),
+    stock: 999,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "3",
+    slug: "forge-pass-12mo",
+    title: "Forge Pass · 12 Months",
+    description: "Gaming subscription",
+    platform: "Subscription",
+    priceCents: 2699,
+    compareCents: 2999,
+    category: "SUBSCRIPTION" as const,
+    rarity: "PREMIUM" as const,
+    instant: true,
+    active: true,
+    imageUrl: getGameArt("forge-pass-12mo"),
+    stock: 999,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "4",
+    slug: "stormcaller-gift-50",
+    title: "Stormcaller Gift Card $50",
+    description: "Digital gift card",
+    platform: "Gift Card",
+    priceCents: 5000,
+    compareCents: 5000,
+    category: "GIFT_CARD" as const,
+    rarity: "COMMON" as const,
+    instant: true,
+    active: true,
+    imageUrl: getGameArt("stormcaller-gift-50"),
+    stock: 9999,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "5",
+    slug: "blackforge-headset",
+    title: "BLACKFORGE Tactical Headset",
+    description: "Premium Discord membership",
+    platform: "Accessory",
+    priceCents: 9999,
+    compareCents: 11999,
+    category: "ACCESSORY" as const,
+    rarity: "PREMIUM" as const,
+    instant: false,
+    active: true,
+    imageUrl: getGameArt("blackforge-headset"),
+    stock: 40,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+];
+
 export default async function Home() {
   // Surface real discounted products as "Flash Deals".
-  const all = await listProducts({ sort: "newest" });
-  const deals = all.filter((p) => p.compareCents).slice(0, 5);
+  let all: Awaited<ReturnType<typeof listProducts>> = MOCK_PRODUCTS as Awaited<
+    ReturnType<typeof listProducts>
+  >;
+
+  try {
+    all = await listProducts({ sort: "newest" });
+  } catch {
+    console.warn("Database unavailable, using mock products for development");
+  }
+
+  const deals = all.filter((p) => p.compareCents && p.priceCents < p.compareCents).slice(0, 5);
   const featured = deals.length ? deals : all.slice(0, 5);
   return (
     <>
@@ -41,13 +140,17 @@ export default async function Home() {
           delivered the instant you pay.
         </p>
         <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-          <Button size="lg" className="group">
-            Shop Now
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-          </Button>
-          <Button size="lg" variant="secondary">
-            Today&apos;s Deals
-          </Button>
+          <Link href="/shop">
+            <Button size="lg" className="group">
+              Shop Now
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            </Button>
+          </Link>
+          <Link href="/shop">
+            <Button size="lg" variant="secondary">
+              Today&apos;s Deals
+            </Button>
+          </Link>
         </div>
       </section>
 

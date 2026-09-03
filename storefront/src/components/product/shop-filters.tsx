@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, type ReactNode } from "react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CATEGORY_LABELS } from "@/lib/format";
@@ -13,6 +13,30 @@ const PRICE_BUCKETS = [
   { label: "Under $50", value: "5000" },
   { label: "Under $100", value: "10000" },
 ];
+
+function FilterSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="border-b border-ash/40 py-5">
+      <h3 className="mb-3 font-display text-xs font-semibold uppercase tracking-wider text-bronze">{title}</h3>
+      <div className="flex flex-wrap gap-2">{children}</div>
+    </div>
+  );
+}
+
+function FilterChip({ on, onClick, children }: { on: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-bf border px-3 py-1.5 text-xs transition-colors",
+        on ? "border-ember bg-ember/10 text-ember" : "border-ash bg-iron text-smoke hover:text-moon"
+      )}
+    >
+      {children}
+    </button>
+  );
+}
 
 export function ShopFilters({ platforms }: { platforms: string[] }) {
   const router = useRouter();
@@ -31,28 +55,6 @@ export function ShopFilters({ platforms }: { platforms: string[] }) {
   const active = (key: string, value: string) => params.get(key) === value;
   const hasFilters = ["category", "platform", "rarity", "maxPrice"].some((k) => params.get(k));
 
-  const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <div className="border-b border-ash/40 py-5">
-      <h3 className="mb-3 font-display text-xs font-semibold uppercase tracking-wider text-bronze">
-        {title}
-      </h3>
-      <div className="flex flex-wrap gap-2">{children}</div>
-    </div>
-  );
-
-  const Chip = ({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "rounded-bf border px-3 py-1.5 text-xs transition-colors",
-        on ? "border-ember bg-ember/10 text-ember" : "border-ash bg-iron text-smoke hover:text-moon"
-      )}
-    >
-      {children}
-    </button>
-  );
-
   return (
     <aside className="w-full shrink-0 lg:w-60">
       <div className="flex items-center justify-between">
@@ -68,39 +70,39 @@ export function ShopFilters({ platforms }: { platforms: string[] }) {
         )}
       </div>
 
-      <Section title="Category">
+      <FilterSection title="Category">
         {(Object.keys(CATEGORY_LABELS) as ProductCategory[]).map((c) => (
-          <Chip key={c} on={active("category", c)} onClick={() => setParam("category", c)}>
+          <FilterChip key={c} on={active("category", c)} onClick={() => setParam("category", c)}>
             {CATEGORY_LABELS[c]}
-          </Chip>
+          </FilterChip>
         ))}
-      </Section>
+      </FilterSection>
 
       {platforms.length > 0 && (
-        <Section title="Platform">
+        <FilterSection title="Platform">
           {platforms.map((p) => (
-            <Chip key={p} on={active("platform", p)} onClick={() => setParam("platform", p)}>
+            <FilterChip key={p} on={active("platform", p)} onClick={() => setParam("platform", p)}>
               {p}
-            </Chip>
+            </FilterChip>
           ))}
-        </Section>
+        </FilterSection>
       )}
 
-      <Section title="Rarity">
+      <FilterSection title="Rarity">
         {RARITIES.map((r) => (
-          <Chip key={r} on={active("rarity", r)} onClick={() => setParam("rarity", r)}>
+          <FilterChip key={r} on={active("rarity", r)} onClick={() => setParam("rarity", r)}>
             {r.charAt(0) + r.slice(1).toLowerCase()}
-          </Chip>
+          </FilterChip>
         ))}
-      </Section>
+      </FilterSection>
 
-      <Section title="Price">
+      <FilterSection title="Price">
         {PRICE_BUCKETS.map((b) => (
-          <Chip key={b.value} on={active("maxPrice", b.value)} onClick={() => setParam("maxPrice", b.value)}>
+          <FilterChip key={b.value} on={active("maxPrice", b.value)} onClick={() => setParam("maxPrice", b.value)}>
             {b.label}
-          </Chip>
+          </FilterChip>
         ))}
-      </Section>
+      </FilterSection>
     </aside>
   );
 }

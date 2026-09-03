@@ -22,19 +22,29 @@ export function SearchBox() {
 
   // Debounced typeahead
   useEffect(() => {
-    if (q.trim().length < 2) {
-      setHits([]);
-      return;
+    const trimmed = q.trim();
+
+    if (trimmed.length < 2) {
+      const t = setTimeout(() => setHits([]), 0);
+      return () => clearTimeout(t);
     }
+
     const ctrl = new AbortController();
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal: ctrl.signal });
-        if (res.ok) setHits(await res.json());
+        const res = await fetch(`/api/search?q=${encodeURIComponent(trimmed)}`, { signal: ctrl.signal });
+        if (!res.ok) {
+          setHits([]);
+          return;
+        }
+
+        const data = await res.json();
+        if (!ctrl.signal.aborted) setHits(data);
       } catch {
-        /* aborted */
+        setHits([]);
       }
     }, 200);
+
     return () => {
       clearTimeout(t);
       ctrl.abort();

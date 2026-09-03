@@ -1,13 +1,14 @@
 import { Embers } from "./embers";
+import { FrameAnimation } from "./frame-animation";
 
 /**
- * Dynamic background system v1.
- * CSS-only fog + eclipse (cheap, compositor-only) plus a capped ember particle
- * canvas (client, intersection/visibility-gated). Heavier WebGL hero comes later.
+ * Full-screen frame animation with atmospheric overlay layers.
  */
 export function Background() {
   return (
     <div className="bf-bg" aria-hidden="true">
+      <div className="absolute inset-0 bg-black" />
+      <FrameAnimation />
       <div className="bf-eclipse" />
       <div className="bf-fog" />
       <Embers />

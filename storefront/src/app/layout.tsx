@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Cinzel, Inter, JetBrains_Mono } from "next/font/google";
+import { Cinzel, Inter, JetBrains_Mono, Geist } from "next/font/google";
 import "./globals.css";
 import { Background } from "@/components/layout/background";
 import { Topbar } from "@/components/layout/topbar";
@@ -7,6 +7,9 @@ import { Footer } from "@/components/layout/footer";
 import { CartDrawer } from "@/components/cart/cart-drawer";
 import { JsonLd } from "@/components/seo/json-ld";
 import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from "@/lib/site";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const cinzel = Cinzel({
   variable: "--font-cinzel",
@@ -60,7 +63,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${cinzel.variable} ${inter.variable} ${jetbrains.variable} h-full antialiased`}
+      className={cn("h-full", "antialiased", cinzel.variable, inter.variable, jetbrains.variable, "font-sans", geist.variable)}
     >
       <body className="min-h-full flex flex-col">
         <JsonLd data={orgJsonLd} />

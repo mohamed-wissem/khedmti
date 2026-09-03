@@ -1,6 +1,19 @@
 import { PrismaClient, ProductCategory, Rarity } from "@prisma/client";
+import gameArt from "../games.json";
 
 const prisma = new PrismaClient();
+const GAME_ART = gameArt as Record<string, string>;
+
+function pickGameArt(seed: string) {
+  const keys = Object.keys(GAME_ART);
+  if (!keys.length) {
+    return "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1200&q=80";
+  }
+
+  const hash = [...seed].reduce((total, char) => total + char.charCodeAt(0), 0);
+  const key = keys[hash % keys.length];
+  return GAME_ART[key] ?? "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=1200&q=80";
+}
 
 type Seed = {
   slug: string;
@@ -45,10 +58,12 @@ const PRODUCTS: Seed[] = [
 async function main() {
   console.log("Seeding BLACKFORGE products…");
   for (const p of PRODUCTS) {
+    const imageUrl = pickGameArt(`${p.slug}-${p.title}`);
+
     await prisma.product.upsert({
       where: { slug: p.slug },
-      update: { ...p, instant: p.category !== "ACCESSORY" },
-      create: { ...p, instant: p.category !== "ACCESSORY" },
+      update: { ...p, imageUrl, instant: p.category !== "ACCESSORY" },
+      create: { ...p, imageUrl, instant: p.category !== "ACCESSORY" },
     });
   }
   const count = await prisma.product.count();
