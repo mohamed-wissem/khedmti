@@ -46,6 +46,7 @@
     @apply font-sans;
   }
   body {
+    position: relative;
     background-color: var(--color-void);
     color: var(--color-moon);
     font-family: var(--font-sans);
@@ -103,10 +104,14 @@
 .bf-bg {
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: 0;
   overflow: hidden;
   pointer-events: none;
   background: radial-gradient(120% 80% at 50% -10%, #0d0d12 0%, var(--color-void) 55%, #060608 100%);
+}
+.bf-bg ~ * {
+  position: relative;
+  z-index: 1;
 }
 .bf-frame-animation {
   position: absolute;
